@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1115">
+<title>After School</title>
+<style>
+/* One deliberate look in light and dark alike: cream paper, black ink, the scooter's red. Landscape 16:9. */
+:root{--ink:#0a1115;--paper:#f6e5c7;--red:#bc2b20;--blue:#1f4b8f;--paper-soft:#f6e5c7ee;--ink-soft:#0a111540;--display:Georgia,"Times New Roman",serif;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--ink)}
+body{overflow:hidden;color:var(--ink);font-family:var(--display);display:grid;place-items:center;-webkit-user-select:none;user-select:none;touch-action:none}
+.frame{position:relative;width:min(100%,177.78vh);aspect-ratio:16/9;max-height:100%;overflow:hidden;background:var(--paper);isolation:isolate;container-type:inline-size}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud,.grain{pointer-events:none}
+.grain{position:absolute;inset:0;mix-blend-mode:multiply;opacity:.5;background-size:256px 256px}
+button{font:1.25cqw var(--display);color:var(--ink);background:var(--paper-soft);border:1px solid var(--ink-soft);border-radius:3cqw;padding:.7cqw 1.4cqw;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.corner{position:absolute;top:1.1cqw;right:1.1cqw;display:flex;gap:.6cqw;z-index:6}
+.corner button{font-size:1.05cqw}
+.screen{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.5cqw;padding:2.5cqw;text-align:center}
+#title{background:linear-gradient(#f6e5c7f2 0%,#f6e5c7d8 55%,#f6e5c780 100%)}
+.card{background:#0a1115b8}
+h1{margin:0;font-size:6.2cqw;font-weight:400;letter-spacing:-.12cqw;line-height:1}
+h1 small{display:block;margin-top:1cqw;font-size:1.25cqw;letter-spacing:.24cqw;text-transform:uppercase;color:var(--red)}
+p{margin:0}
+.pitch{max-width:52cqw;font-size:1.75cqw;line-height:1.45}
+.days{display:flex;gap:.6cqw}
+.day{display:grid;justify-items:center;gap:.1cqw;width:5.4cqw;padding:.6cqw 0;border-radius:1cqw;background:transparent;border:1px solid var(--ink-soft)}
+.day b{font-size:1.9cqw;font-weight:400}
+.day span{font-size:.95cqw;letter-spacing:.1cqw;text-transform:uppercase}
+.day i{font-style:normal;font-size:.8cqw;color:var(--red);letter-spacing:.1cqw}
+.day.done{background:var(--paper)}
+.day.next{border:2px solid var(--red)}
+.play{background:var(--red);color:var(--paper);border-color:var(--red);font-size:1.9cqw;padding:1cqw 4cqw}
+.keys{display:grid;grid-template-columns:auto auto;gap:.45cqw 1.4cqw;text-align:left;font-size:1.3cqw}
+kbd{display:inline-block;min-width:2.1cqw;padding:.1cqw .5cqw;border:1px solid var(--ink);border-bottom-width:3px;border-radius:.4cqw;background:var(--paper);font:1.05cqw ui-monospace,Consolas,monospace;text-align:center}
+.small{font-size:1.05cqw;opacity:.8;display:flex;gap:.5cqw;align-items:center}
+.small input{accent-color:var(--red);width:1.3cqw;height:1.3cqw}
+.sheet{background:var(--paper);border:.25cqw solid var(--ink);border-radius:1.6cqw;padding:2.2cqw 3cqw;display:flex;flex-direction:column;align-items:center;gap:1.2cqw;min-width:38cqw;box-shadow:.6cqw .6cqw 0 var(--ink)}
+.sheet h2{margin:0;font-size:1.3cqw;font-weight:400;letter-spacing:.24cqw;text-transform:uppercase;color:var(--red)}
+.big{font-size:5.6cqw;line-height:1;font-variant-numeric:tabular-nums}
+.tag{font-size:2.4cqw}
+.phone{width:30cqw;background:var(--ink);border-radius:2.2cqw;padding:1cqw}
+.phone .glass{background:var(--paper);border-radius:1.5cqw;padding:1.2cqw;display:flex;flex-direction:column;gap:.9cqw;min-height:15cqw}
+.phone .bar{display:flex;justify-content:space-between;font-size:1.05cqw;letter-spacing:.1cqw;text-transform:uppercase;opacity:.75}
+.bubble{align-self:flex-start;max-width:90%;text-align:left;font-size:1.6cqw;line-height:1.3;padding:.7cqw 1.1cqw;border:2px solid var(--ink);border-radius:1.4cqw 1.4cqw 1.4cqw .3cqw;background:#fff6dc}
+.reply{align-self:flex-end;font-size:1.6cqw;border-radius:1.4cqw 1.4cqw .3cqw 1.4cqw;padding:.8cqw 1.6cqw}
+.stamps{display:flex;gap:1.6cqw;margin:.4cqw 0}
+.stamp{font-size:1.5cqw;letter-spacing:.2cqw;text-transform:uppercase;padding:.55cqw 1.2cqw;border:.3cqw solid var(--ink);border-radius:.6cqw;opacity:.16;transform:rotate(-4deg)}
+.stamp:nth-child(2){transform:rotate(3deg)}
+.stamp.earned{opacity:1;color:var(--red);border-color:var(--red)}
+.row{display:flex;gap:.8cqw;align-items:center}
+.muted{font-size:1.15cqw;opacity:.75}
+.touch{position:absolute;right:2.5cqw;bottom:3cqw;z-index:4;display:flex;gap:1.5cqw;align-items:flex-end}
+.touch button{width:11cqw;height:11cqw;border-radius:50%;font-size:1.5cqw;background:#f6e5c7c0;border:.25cqw solid var(--ink)}
+.touch #t-hit{background:#bc2b20d0;color:var(--paper);border-color:var(--paper)}
+.notice{position:absolute;left:25%;right:25%;top:44%;z-index:8;padding:1.4cqw;background:var(--paper);border:1px solid var(--ink);line-height:1.5;text-align:center;font-size:1.4cqw}
+@media (orientation:portrait){.frame::after{content:"Turn your phone sideways.";position:absolute;inset:auto 0 3% 0;text-align:center;font-size:4cqw;color:var(--paper);background:var(--ink);padding:1cqw;z-index:9}}
+</style>
+</head>
+<body>
+<main class="frame" id="frame">
+  <canvas id="world" width="1280" height="720" aria-label="First-person scooter ride through a street to the school gate"></canvas>
+  <div class="grain" id="grain"></div>
+  <canvas id="hud" width="1280" height="720" aria-hidden="true"></canvas>
+  <div class="corner"><button id="mute" type="button">Sound on</button><button id="pause" type="button" hidden>Pause (P)</button></div>
+  <div class="touch" id="touch" hidden><button id="t-wheelie" type="button">wheelie</button><button id="t-hit" type="button">helmet</button></div>
+
+  <section class="screen" id="title" aria-labelledby="title-heading">
+    <h1 id="title-heading">After School<small>ten school days · playtest V0</small></h1>
+    <p class="pitch">It’s 2:25. School ends in five minutes. The sky goes black and the dead get up. You’re still picking up your daughter.</p>
+    <div class="days" id="days" aria-label="Days"></div>
+    <button class="play" id="play" type="button">Ride</button>
+    <div class="keys">
+      <span><kbd>A</kbd> <kbd>D</kbd> or <kbd>←</kbd> <kbd>→</kbd></span><span>steer</span>
+      <span>hold <kbd>W</kbd> <kbd>↑</kbd> or <kbd>Space</kbd></span><span>wheelie, when the red dial has charge</span>
+      <span><kbd>F</kbd> or click</span><span>swing the helmet</span>
+    </div>
+    <label class="small"><input type="checkbox" id="motion" checked>Lean and shake</label>
+  </section>
+
+  <section class="screen card" id="intro" hidden aria-labelledby="intro-day">
+    <div class="phone"><div class="glass">
+      <div class="bar"><span id="intro-day">Monday</span><span>2:25</span></div>
+      <div id="intro-texts" style="display:flex;flex-direction:column;gap:.6cqw"></div>
+      <button class="play reply" id="go" type="button">heading there now</button>
+    </div></div>
+    <p class="tag" id="intro-tag" style="color:var(--paper)"></p>
+    <p class="muted" style="color:var(--paper)">Enter, or tap your reply</p>
+  </section>
+
+  <section class="screen card" id="end" hidden aria-labelledby="end-day">
+    <div class="sheet">
+      <h2 id="end-day">Monday</h2>
+      <div class="big" id="end-time">2:29:50</div>
+      <p class="tag" id="end-verdict">On time.</p>
+      <div class="stamps"><span class="stamp earned">Got her</span><span class="stamp" id="stamp-time">On time</span><span class="stamp" id="stamp-clean">Not a scratch</span></div>
+      <p class="muted" id="end-stats"></p>
+      <div class="row"><button id="again" type="button">Ride again</button><button class="play" id="next" type="button">Tuesday →</button><button id="to-days" type="button">Days</button></div>
+    </div>
+  </section>
+
+  <section class="screen card" id="caught" hidden aria-label="Caught">
+    <div class="phone"><div class="glass">
+      <div class="bar"><span>Missed call</span><span>2:31</span></div>
+      <p class="bubble">where are u??</p>
+      <button class="play reply" id="retry" type="button">on my way. again.</button>
+    </div></div>
+    <button id="caught-days" type="button">Days</button>
+  </section>
+
+  <section class="screen card" id="paused" hidden aria-label="Paused">
+    <div class="sheet"><h2>Paused</h2>
+      <div class="row"><button class="play" id="resume" type="button">Ride on</button><button id="restart" type="button">Restart the day</button><button id="quit" type="button">Days</button></div>
+    </div>
+  </section>
+
+  <section class="screen card" id="fin" hidden aria-label="The end of the playtest">
+    <div class="phone"><div class="glass"><div class="bar"><span>Friday night</span><span>9:40</span></div><p class="bubble" id="fin-text"></p></div></div>
+    <p class="tag" style="color:var(--paper)">Every day. Five minutes.</p>
+    <p class="muted" style="color:var(--paper)">That was the V0 playtest. Tell us how it felt.</p>
+    <button id="fin-days" type="button">Days</button>
+  </section>
+
+  <p class="notice" id="notice" role="status">Getting the scooter ready…</p>
+</main>
+<!--SCRIPTS-->
+</body>
+</html>

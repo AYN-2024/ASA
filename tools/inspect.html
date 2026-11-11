@@ -1,0 +1,88 @@
+<!doctype html>
+<!-- After School · V0 · dev tool: load one GLB, measure it, and render it in the game's ink style.
+     Open through tools/cdp.cjs with --allow-file-access-from-files (see tools/inspect.cjs). Needs internet for Three.js. -->
+<html><head><meta charset="utf-8"><title>ASA inspect</title>
+<style>html,body{margin:0;background:#f6e5c7}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head><body><canvas id="c" width="1280" height="720"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as BGU from 'three/addons/utils/BufferGeometryUtils.js';
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(1280, 720, false);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf6e5c7);
+scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+sun.position.set(-40, 60, 25);
+scene.add(sun);
+const camera = new THREE.PerspectiveCamera(35, 1280 / 720, 0.01, 100);
+const steps = new Uint8Array([90, 90, 90, 255, 255, 255, 255, 255]);
+const gradientMap = new THREE.DataTexture(steps, 2, 1, THREE.RGBAFormat);
+gradientMap.minFilter = gradientMap.magFilter = THREE.NearestFilter;
+gradientMap.needsUpdate = true;
+let current = null;
+
+// Loads a GLB and returns one indexed geometry in world coordinates (all meshes merged).
+async function load(url) {
+  const gltf = await new Promise((res, rej) => new GLTFLoader().load(url, res, undefined, rej));
+  const parts = [];
+  gltf.scene.updateMatrixWorld(true);
+  gltf.scene.traverse((o) => { if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k); parts.push(g); } });
+  const geo = parts.length === 1 ? parts[0] : BGU.mergeGeometries(parts);
+  geo.computeBoundingBox();
+  return geo;
+}
+
+// Vertex-connected components of an indexed geometry: returns Int32Array of component id per vertex and sizes.
+function components(geo) {
+  const n = geo.attributes.position.count;
+  const parent = new Int32Array(n).map((_, i) => i);
+  const find = (a) => { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+  const idx = geo.index.array;
+  for (let i = 0; i < idx.length; i += 3) { const a = find(idx[i]); const b = find(idx[i + 1]); const c = find(idx[i + 2]); parent[b] = a; parent[c] = a; }
+  const ids = new Int32Array(n); const map = new Map(); const sizes = [];
+  for (let i = 0; i < n; i++) { const r = find(i); if (!map.has(r)) { map.set(r, sizes.length); sizes.push(0); } ids[i] = map.get(r); sizes[ids[i]]++; }
+  return { ids, sizes };
+}
+
+// Shows a geometry with a per-triangle colour rule: rule(cx,cy,cz,nx,ny,nz,triIndex,compId) -> hex colour.
+function show(geo, rule, outline = 0.012) {
+  if (current) scene.remove(current);
+  const comp = geo.index ? components(geo) : null;
+  const src = geo.index ? geo.toNonIndexed() : geo.clone();
+  const idx = geo.index ? geo.index.array : null;
+  const pos = src.attributes.position; const nor = src.attributes.normal;
+  const col = new Float32Array(pos.count * 3); const c = new THREE.Color();
+  for (let t = 0; t < pos.count; t += 3) {
+    let cx = 0, cy = 0, cz = 0, nx = 0, ny = 0, nz = 0;
+    for (let k = 0; k < 3; k++) { cx += pos.getX(t + k) / 3; cy += pos.getY(t + k) / 3; cz += pos.getZ(t + k) / 3; nx += nor.getX(t + k) / 3; ny += nor.getY(t + k) / 3; nz += nor.getZ(t + k) / 3; }
+    c.set(rule(cx, cy, cz, nx, ny, nz, t / 3, comp && idx ? comp.ids[idx[t]] : 0));
+    for (let k = 0; k < 3; k++) { col[(t + k) * 3] = c.r; col[(t + k) * 3 + 1] = c.g; col[(t + k) * 3 + 2] = c.b; }
+  }
+  src.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const group = new THREE.Group();
+  group.add(new THREE.Mesh(src, new THREE.MeshToonMaterial({ vertexColors: true, gradientMap })));
+  if (outline > 0 && geo.index) {
+    const hull = geo.clone(); const p = hull.attributes.position; const nn = hull.attributes.normal;
+    for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) + nn.getX(i) * outline, p.getY(i) + nn.getY(i) * outline, p.getZ(i) + nn.getZ(i) * outline);
+    group.add(new THREE.Mesh(hull, new THREE.MeshBasicMaterial({ color: 0x0a1115, side: THREE.BackSide })));
+  }
+  scene.add(group); current = group;
+  return group;
+}
+
+// Camera on a sphere around the target: yaw 0 looks from +z toward -z (at the model's front if it faces +z).
+function view(yaw, pitch, dist, tx = 0, ty = 0.5, tz = 0, fov = 35) {
+  camera.fov = fov; camera.updateProjectionMatrix();
+  camera.position.set(tx + Math.sin(yaw) * Math.cos(pitch) * dist, ty + Math.sin(pitch) * dist, tz + Math.cos(yaw) * Math.cos(pitch) * dist);
+  camera.lookAt(tx, ty, tz);
+  renderer.render(scene, camera);
+}
+
+window.I = { THREE, BGU, load, components, show, view, scene, camera, renderer };
+window.READY = true;
+</script></body></html>
