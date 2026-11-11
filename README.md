@@ -2,6 +2,8 @@
 
 > It's 2:25. School ends in five minutes. The sky goes black and the dead get up. You're still picking up your daughter.
 
+**Play it now:** https://ayn-2024.github.io/ASA/ (a computer with a keyboard).
+
 A first-person scooter game. An ordinary dad, a 150cc scooter, a helmet, and a gate to reach by 2:30. Funny and frightening, no gore, no guns. This is the first build that is a whole game: ten days, each one ends at the school gate with her.
 
 **Status, 11 November 2026:** playable from the title to the end of day 10. Built and checked by bots and by headless screenshots. **Not yet played by a human.**
